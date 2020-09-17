@@ -10,9 +10,9 @@ let generateToken = (data, cb) => {
         {
             jwtid: shortId.generate(),
             iat: Date.now(),
-            exp: (Date.now()) + (60 * 60 * 24),
+            exp: (Date.now()) + (60 * 60 *60 * 24),
             sub: 'authToken',
-            iss: 'meeting-planner',
+            iss: 'oms',
             data: data
         };
 

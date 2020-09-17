@@ -1,5 +1,6 @@
 const config = require('../../config');
-const controller = require('../controller/user')
+const controller = require('../controller/user');
+const authMiddleware = require('../middleware/authMiddleware')
 
 let setRoutes = (app)=>
 {
@@ -8,8 +9,11 @@ let setRoutes = (app)=>
     //signup route
     app.post(`${baseUri}/signup`,controller.signUp);
 
-    // login route
+    // signin route
     app.post(`${baseUri}/signin`,controller.signIn);
+
+    // signout route
+    app.post(`${baseUri}/signout`,authMiddleware.isAuthorized, controller.signOut);
 }
 
 module.exports=
