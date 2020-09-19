@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const logger = require('./loggerLib');
 
-// const generatePassword = require('generate-password');
+const generatePassword = require('generate-password');
 
 const saltRounds = 10;
 
@@ -23,19 +23,19 @@ let comparePassword = (password, hashPassword, cb) => {
     })
 }
 
-//generate new password
-// let generateNewPassword =()=>
-// {
+// generate new password
+let generateNewPassword =()=>
+{
 
-//     let password = generatePassword.generate({
-//         length: 8,
-//         numbers: true
-//     });
-//     return password;
-// }
+    let password = generatePassword.generate({
+        length: 8,
+        numbers: true
+    });
+    return password;
+}
 module.exports =
     {
         hashPassword,
         comparePassword,
-        // generateNewPassword
+        generateNewPassword
     }

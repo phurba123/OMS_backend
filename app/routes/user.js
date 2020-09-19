@@ -14,6 +14,9 @@ let setRoutes = (app)=>
 
     // signout route
     app.post(`${baseUri}/signout`,authMiddleware.isAuthorized, controller.signOut);
+
+    // reset password
+    app.post(`${baseUri}/reset/password`,controller.resetPassword)
 }
 
 module.exports=

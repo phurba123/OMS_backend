@@ -4,15 +4,15 @@ let logger = require('../lib/loggerLib');
 let checkLib = require('../lib/checkLib');
 let shortid = require('shortid');
 let passwordLib = require('../lib/generatePasswordLib');
-let tokenLib = require('../lib/tokenLib')
+let tokenLib = require('../lib/tokenLib');
+let emailLib = require('../lib/emailLib')
 
 let UserModel = require('../model/user');
 let authModel = require('../model/auth');
 
 let apiResponse;
 
-let signUp = (req,res)=>
-{
+let signUp = (req, res) => {
     //validating email and other inputs
     let validateUserInput = () => {
         return new Promise((resolve, reject) => {
@@ -89,7 +89,7 @@ let signUp = (req,res)=>
             delete resolve.__v;
             delete resolve._id;
             apiResponse = response.generate(false, 'user created', 200, resolve);
-            logger.info('user created','signup : createUser',10)
+            logger.info('user created', 'signup : createUser', 10)
             res.send(apiResponse);
         })
         .catch((error) => {
@@ -97,20 +97,15 @@ let signUp = (req,res)=>
         })
 }
 
-let signIn = (req,res)=>
-{
-    let validateInputs = ()=>
-    {
-        return new Promise((resolve,reject)=>
-        {
-            if(req.body.email && req.body.password)
-            {
+let signIn = (req, res) => {
+    let validateInputs = () => {
+        return new Promise((resolve, reject) => {
+            if (req.body.email && req.body.password) {
                 resolve(req)
             }
-            else
-            {
-                apiResponse = response.generate(true,'one or more parameter missing',400,null);
-                logger.error('one or more parameter missing','signIn : validateInputs',10);
+            else {
+                apiResponse = response.generate(true, 'one or more parameter missing', 400, null);
+                logger.error('one or more parameter missing', 'signIn : validateInputs', 10);
                 reject(apiResponse)
             }
         })
@@ -119,24 +114,24 @@ let signIn = (req,res)=>
     //using promise for finding user,to check if provided email has been registered or not
     let findUser = () => {
         return new Promise((resolve, reject) => {
-                UserModel.findOne({ email: req.body.email }, (err, userDetails) => {
-                    if (err) {
-                        logger.error(err.message, 'signin:findUser', 10);
-                        apiResponse = response.generate(true, 'failed to find user detail', 500, null);
-                        reject(apiResponse)
-                    }
-                    else if (checkLib.isEmpty(userDetails)) {
-                        //userdetails is empty so it means that the user with given email is not 
-                        //registered yet
-                        logger.info('no user found with given email', 'signin:findUser', 7);
-                        apiResponse = response.generate(true, 'no user details found', 404, null);
-                        reject(apiResponse)
-                    }
-                    else {
-                        logger.info('user found', 'signin:findUser', 10);
-                        resolve(userDetails);
-                    }
-                })
+            UserModel.findOne({ email: req.body.email }, (err, userDetails) => {
+                if (err) {
+                    logger.error(err.message, 'signin:findUser', 10);
+                    apiResponse = response.generate(true, 'failed to find user detail', 500, null);
+                    reject(apiResponse)
+                }
+                else if (checkLib.isEmpty(userDetails)) {
+                    //userdetails is empty so it means that the user with given email is not 
+                    //registered yet
+                    logger.info('no user found with given email', 'signin:findUser', 7);
+                    apiResponse = response.generate(true, 'no user details found', 404, null);
+                    reject(apiResponse)
+                }
+                else {
+                    logger.info('user found', 'signin:findUser', 10);
+                    resolve(userDetails);
+                }
+            })
         });//end of promise
     }//end of findUser
 
@@ -173,7 +168,7 @@ let signIn = (req,res)=>
         return new Promise((resolve, reject) => {
             tokenLib.generateToken(userDetails, (error, tokenDetails) => {
                 if (error) {
-                    logger.error(error,'signin : generateToken',10)
+                    logger.error(error, 'signin : generateToken', 10)
                     apiResponse = response.generate(true, 'failed to generate token', 500, null);
                     reject(apiResponse);
                 }
@@ -248,7 +243,7 @@ let signIn = (req,res)=>
         });//end of promise for saving token
     }//end of savetoken function
 
-    validateInputs(req,res)
+    validateInputs(req, res)
         .then(findUser)
         .then(validatePassword)
         .then(generateToken)
@@ -282,9 +277,108 @@ let signOut = (req, res) => {
 
 } // end of the logout function.
 
-module.exports=
+// reset password
+let resetPassword = (req, res) => {
+
+    //validating email
+    let validateUserInput = () => {
+        return new Promise((resolve, reject) => {
+            if (req.body.email) {
+                resolve(req);
+            }
+            else {
+                logger.error('email field missing', 'resetPassword', 10);
+                apiResponse = response.generate(true, 'Email is missing', 400, null);
+                reject(apiResponse);
+            }
+        });
+    }//end of validate user input
+
+    // check if user is present
+    let findUser = () => {
+        return new Promise((resolve, reject) => {
+
+            UserModel.findOne({ 'email': req.body.email })
+                .select('-__v -_id')
+                .lean()
+                .exec((err, result) => {
+                    if (err) {
+                        console.log(err)
+                        logger.error('failed to find user detail', 'resetPassword', 10)
+                        apiResponse = response.generate(true, 'Failed To Find User Details', 500, null)
+                        reject(apiResponse)
+                    } else if (checkLib.isEmpty(result)) {
+                        logger.info('No User Found with given email', 'resetPassword')
+                        apiResponse = response.generate(true, 'No User Found with given email', 404, null)
+                        reject(apiResponse)
+                    } else {
+                        resolve(result)
+
+                    }
+                })
+        })
+    }
+
+    let generateAndSaveNewPassword = (userDetail) => {
+
+        //generating new password
+        let newPassword = passwordLib.generateNewPassword();
+        console.log('new password', newPassword);
+
+        //updating userDetail with new hashed password
+        userDetail.password = passwordLib.hashPassword(newPassword)
+
+        return new Promise((resolve, reject) => {
+            UserModel.updateOne({ 'email': req.body.email }, userDetail).exec((err, result) => {
+                if (err) {
+                    console.log(err)
+                    logger.error('failed to reset password', 'resetPassword', 10)
+                    apiResponse = response.generate(true, 'Failed To reset Password', 500, null)
+                    reject(apiResponse)
+                }
+                else {
+
+                    //Creating object for sending email 
+                    let sendEmailObj = {
+                        email: req.body.email,
+                        subject: 'Reset Password for OMS ',
+                        html: `<h5> Hi ${userDetail.username}</h5>
+                                    <p>
+                                    -----It seems you have forgot your password of OMS------
+                                    No worries , You have been provided a new password in replace to your old password.
+                                        
+                                    Your new password is -->${newPassword}<--
+                                        
+                                    ***** Keep visiting OMS****                                
+                                    </p>`
+                    }
+
+                    setTimeout(() => {
+                        emailLib.sendEmailToUser(sendEmailObj);
+                    }, 1500);
+                    apiResponse = response.generate(false, 'reset password successfull', 200, newPassword)
+                    resolve(apiResponse);
+                }
+            });
+        })
+    }//end of generating and saving new password
+
+    validateUserInput(req, res)
+        .then(findUser)
+        .then(generateAndSaveNewPassword)
+        .then((resolve) => {
+            res.send(resolve)
+        })
+        .catch((error) => {
+            res.send(error)
+        })
+    //logic of function
+}
+
+module.exports =
 {
     signUp,
     signIn,
-    signOut
+    signOut,
+    resetPassword
 }

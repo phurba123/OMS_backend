@@ -7,7 +7,7 @@ let setRoutes = (app)=>
     app.get(`/api/v1/transaction/all`,authMiddleware.isAuthorized,controller.getAllTransactions);
 
     // new transaction
-    app.post(`/api/v1/transaction/new`,authMiddleware.isAuthorized,controller.addNewTransaction)
+    app.post(`/api/v1/transaction/new`,authMiddleware.isAuthorized,controller.addNewTransaction);
 }
 
 module.exports=
