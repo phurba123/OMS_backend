@@ -9,7 +9,14 @@ let mongoose = require('mongoose')
 
 // global middleware
 app.use(bodyparser.json());
-app.use(bodyparser.urlencoded({ extended: false }))
+app.use(bodyparser.urlencoded({ extended: false }));
+
+app.all('*', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', config.allowedCorsOrigin);
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    next()
+})
 // end of global middleware
 
 // bootstrap models
@@ -50,7 +57,7 @@ function onListening() {
 }
 
 // server error event
-function onError(err) {
+function onError(error) {
     if (error.syscall !== 'listen') {
         logger.error(error.code + ' not equal listen', 'serverOnErrorHandler', 10)
         throw error;
